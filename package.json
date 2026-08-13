@@ -1,0 +1,14 @@
+{
+  "name": "homepilot",
+  "version": "1.0.0",
+  "description": "HomePilot — AI Property & Smart-Home Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js",
+    "reset": "node server.js --reset && node seed.js"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}

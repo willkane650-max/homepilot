@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>HomePilot — Property & Smart-Home Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+
+<!-- AUTH -->
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand">
+      <div class="logo-mark">HP</div>
+      <div class="brand-name"><b>Home</b>Pilot</div>
+    </div>
+    <h1 id="auth-title">Sign in</h1>
+    <p class="sub" id="auth-sub">The operating system for your property.</p>
+    <div class="tabs">
+      <button id="tab-login" class="active">Sign in</button>
+      <button id="tab-register">Create account</button>
+    </div>
+    <div class="errbox" id="auth-err"></div>
+    <form id="form-login" autocomplete="on">
+      <div class="field"><label>Email</label><input id="li-email" type="email" placeholder="you@example.com" required></div>
+      <div class="field"><label>Password</label><input id="li-pass" type="password" placeholder="••••••••" required></div>
+      <button type="submit" class="btn btn-primary" id="li-btn">Sign in</button>
+    </form>
+    <form id="form-register" style="display:none" autocomplete="on">
+      <div class="field"><label>Full name</label><input id="rg-name" type="text" placeholder="Jane Smith" required></div>
+      <div class="field"><label>Email</label><input id="rg-email" type="email" placeholder="you@example.com" required></div>
+      <div class="field"><label>Password (min 6)</label><input id="rg-pass" type="password" placeholder="••••••••" required></div>
+      <button type="submit" class="btn btn-primary" id="rg-btn">Create account</button>
+    </form>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="shell" class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">HP</div>
+      <div class="brand-name"><b>Home</b>Pilot</div>
+    </div>
+    <nav class="nav" id="desktop-nav">
+      <button class="nav-item active" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10" stroke-linecap="round" stroke-linejoin="round"/></svg>Dashboard</button>
+      <button class="nav-item" data-view="properties"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>Properties</button>
+      <button class="nav-item" data-view="agents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke-linecap="round" stroke-linejoin="round"/></svg>Agents</button>
+      <button class="nav-item" data-view="devices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4" stroke-linecap="round"/></svg>Devices</button>
+      <button class="nav-item" data-view="maintenance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" stroke-linecap="round" stroke-linejoin="round"/></svg>Maintenance</button>
+      <button class="nav-item" data-view="tenants"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4"/></svg>Tenants</button>
+      <button class="nav-item" data-view="documents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke-linecap="round" stroke-linejoin="round"/></svg>Documents</button>
+      <button class="nav-item" data-view="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round"/></svg>Activity</button>
+      <button class="nav-item" data-view="assistant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>AI Assistant</button>
+    </nav>
+    <div class="sidebar-user">
+      <div class="avatar" id="me-avatar">?</div>
+      <div style="min-width:0">
+        <div class="u-name" id="me-name">—</div>
+        <div class="u-role" id="me-role">Owner</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn" style="margin-left:auto" title="Sign out">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </aside>
+  <main class="main" id="main"></main>
+  <nav class="mnav" id="mobile-nav">
+    <a data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10" stroke-linecap="round" stroke-linejoin="round"/></svg>Home</a>
+    <a data-view="properties"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>Properties</a>
+    <a data-view="devices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4" stroke-linecap="round"/></svg>Devices</a>
+    <a data-view="maintenance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" stroke-linecap="round" stroke-linejoin="round"/></svg>Maint</a>
+    <a data-view="assistant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>AI</a>
+  </nav>
+</div>
+
+<div class="modal-back" id="modal-back"><div class="modal" id="modal"></div></div>
+<div id="toasts"></div>
+<script src="/app.js"></script>
+</body>
+</html>
