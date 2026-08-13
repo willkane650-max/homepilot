@@ -5,9 +5,12 @@ function esc(s){return String(s==null?'').replace(/&/g,'&amp;').replace(/</g,'&l
 function timeAgo(iso){const s=(Date.now()-new Date(iso).getTime())/1000;if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';if(s<604800)return Math.floor(s/86400)+'d ago';return new Date(iso).toLocaleDateString();}
 function fmtDate(iso){if(!iso)return '—';return new Date(iso).toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 function shortDate(iso){if(!iso)return '—';return new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'});}
+function countdown(iso){if(!iso)return'';const d=new Date(iso)-Date.now();if(d<=0)return'<span class="countdown expired">Expired</span>';const days=Math.floor(d/86400000);const hrs=Math.floor((d%86400000)/3600000);return'<span class="countdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'+(days>0?days+'d '+hrs+'h':hrs+'h remaining')+'</span>';}
+function skeleton(n=3){return Array.from({length:n},()=>'').map(()=>'<div class="skeleton skeleton-card"></div>').join('');}
+function deviceStatusDot(status){const s=['locked','armed','on','recording','active','dry','normal'].includes(status)?'green':['unlocked','disarmed','off'].includes(status)?'amber':'red';return`<span class="dot ${s}"></span>`;}
 
 /* ============ state ============ */
-const state={user:null,properties:[],currentProperty:null,current:'dashboard'};
+const state={user:null,properties:[],currentProperty:null,current:'dashboard',notifCount:0};
 
 /* ============ api ============ */
 async function api(path,opts={}){
@@ -71,27 +74,31 @@ reg('dashboard',async()=>{
     let html=`<div class="view-head"><div><h2>${esc(greeting)}</h2><div class="sub">${state.user.role==='owner'?'Manage your properties, agents, and smart devices.':'Your assigned properties and tasks.'}</div></div></div>`;
 
     if(state.user.role==='owner'){
+      if(!d.properties){
+        html+=`<div class="onboarding"><div class="onb-icon">👋</div><div class="onb-text"><h4>Welcome to HomePilot!</h4><p>Get started by adding your first property. You can then invite agents, connect smart devices, and manage everything from one place.</p></div><button class="btn btn-primary btn-sm" onclick="showAddProperty()">+ Add Property</button></div>`;
+      }
       html+=`<div class="stat-grid">
         <div class="stat-card"><div class="label">Properties</div><div class="value">${d.properties||0}</div></div>
         <div class="stat-card"><div class="label">Active Agents</div><div class="value blue">${d.activeAgents||0}</div></div>
         <div class="stat-card"><div class="label">Open Maintenance</div><div class="value" style="color:var(--amber)">${d.openMaintenance||0}</div></div>
-        <div class="stat-card"><div class="label">Smart Devices</div><div class="value">${d.totalDevices||0}</div></div>
+        <div class="stat-card"><div class="label">Smart Devices</div><div class="value green">${d.totalDevices||0}</div></div>
       </div>`;
 
       if(d.propertiesList&&d.propertiesList.length){
-        html+=`<div class="panel"><h3>My Properties</h3><div class="panel-grid">`;
+        html+=`<div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3 style="margin:0">My Properties</h3><button class="btn btn-ghost btn-sm" onclick="goto('properties')">View all →</button></div><div class="panel-grid">`;
         d.propertiesList.forEach(p=>{
-          html+=`<div class="prop-card" onclick="viewProperty(${p.id})">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:20px">🏠</span><div class="prop-name">${esc(p.name)}</div></div>
+          html+=`<div class="prop-card" onclick="viewProperty(${p.id})" style="padding-top:0;overflow:hidden">
+            <div class="prop-cover cover-residential"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div class="prop-name">${esc(p.name)}</div></div>
             <div class="prop-loc">📍 ${esc([p.city,p.state,p.country].filter(Boolean).join(', ')||'Location not set')}</div>
           </div>`;
         });
         html+=`</div></div>`;
       }else{
-        html+=`<div class="panel"><div class="empty"><p>No properties yet.</p><button class="btn btn-primary" style="margin-top:12px" onclick="goto('properties');showAddProperty();">+ Add Property</button></div></div>`;
+        html+=`<div class="panel"><div class="empty-enhanced"><div class="empty-icon">🏠</div><h3>No properties yet</h3><p>Add your first property to start managing it with HomePilot.</p><button class="btn btn-primary" onclick="showAddProperty()">+ Add Property</button></div></div>`;
       }
     }else{
-      html+=`<div class="panel"><h3>My Assigned Properties</h3><p class="sub">You will see properties here once an owner assigns you.</p></div>`;
+      html+=`<div class="panel"><div class="empty-enhanced"><div class="empty-icon">📋</div><h3>Waiting for assignment</h3><p>You will see properties here once an owner assigns you access.</p></div></div>`;
     }
 
     if(d.recentActivity&&d.recentActivity.length){
@@ -114,10 +121,12 @@ reg('properties',async()=>{
     let html=`<div class="view-head"><div><h2>Properties</h2><div class="sub">Manage your real estate portfolio.</div></div>`;
     if(state.user.role==='owner')html+=`<button class="btn btn-primary" onclick="showAddProperty()">+ Add Property</button>`;
     html+=`</div>`;
-    if(!d.properties.length){html+=`<div class="panel"><div class="empty"><p>No properties yet. Add your first property to get started.</p></div></div>`;return html;}
+    if(!d.properties.length){html+=`<div class="panel"><div class="empty-enhanced"><div class="empty-icon">🏠</div><h3>No properties yet</h3><p>Add your first property to start managing it with HomePilot.</p><button class="btn btn-primary" onclick="showAddProperty()">+ Add Property</button></div></div>`;return html;}
     html+=`<div class="panel-grid">`;
     d.properties.forEach(p=>{
-      html+=`<div class="prop-card" onclick="viewProperty(${p.id})">
+      const coverClass=p.type==='commercial'?'cover-commercial':p.type==='mixed'?'cover-mixed':'cover-residential';
+      html+=`<div class="prop-card" onclick="viewProperty(${p.id})" style="padding-top:0;overflow:hidden">
+        <div class="prop-cover ${coverClass}"></div>
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div><div class="prop-name">${esc(p.name)}</div><div class="prop-loc">📍 ${esc([p.city,p.state,p.country].filter(Boolean).join(', ')||'No address')}</div></div>
           <span class="badge green">Active</span>
@@ -185,6 +194,7 @@ async function viewProperty(id){
       <button data-tab="tenants">Tenants</button>
       <button data-tab="documents">Documents</button>
       <button data-tab="activity">Activity</button>
+      ${state.user.role==='owner'?'<button data-tab="settings">Settings</button>':''}
     </div>`;
 
     html+=`<div id="prop-tab-content"></div>`;
@@ -196,25 +206,33 @@ _binders.properties=undefined;
 
 async function renderPropertyTab(tab,pid){
   const el=$('#prop-tab-content');if(!el)return;
+  el.innerHTML=skeleton(3);
   try{
     if(tab==='overview'){
       const d=await api('/api/properties/'+pid);const p=d.property;
+      const coverClass=p.type==='commercial'?'cover-commercial':p.type==='mixed'?'cover-mixed':'cover-residential';
+      const onlineDevices=d.devices.filter(dev=>['locked','armed','on','recording','active','dry','normal'].includes(dev.status)).length;
       el.innerHTML=`
         <div class="stat-grid">
           <div class="stat-card"><div class="label">Bedrooms</div><div class="value">${p.bedrooms||0}</div></div>
           <div class="stat-card"><div class="label">Bathrooms</div><div class="value">${p.bathrooms||0}</div></div>
-          <div class="stat-card"><div class="label">Devices</div><div class="value blue">${d.devices.length}</div></div>
+          <div class="stat-card"><div class="label">Devices Online</div><div class="value green">${onlineDevices}/${d.devices.length}</div></div>
           <div class="stat-card"><div class="label">Agents</div><div class="value">${d.members.length}</div></div>
         </div>
         <div class="panel"><h3>Property Details</h3>
           <p style="font-size:14px;color:var(--text-sub);margin-bottom:16px">${esc(p.description||'No description.')}</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span>📍</span>${esc([p.address,p.city,p.state,p.country].filter(Boolean).join(', '))}</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span>🏠</span>${esc(p.type.charAt(0).toUpperCase()+p.type.slice(1))} property</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span>🔑</span>Zip: ${esc(p.zipCode||'N/A')}</div>
+          </div>
           <div class="panel-grid">
             <div><h3>Emergency Contacts</h3>
               ${d.emergencyContacts.length?d.emergencyContacts.map(c=>`<div class="access-card"><div class="access-info"><div class="access-name">${esc(c.name)}</div><div class="access-detail">${esc(c.role)} · ${esc(c.phone)}</div></div></div>`).join(''):'<p class="sub">No emergency contacts configured.</p>'}
               ${state.user.role==='owner'?`<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="showAddEmergency(${pid})">+ Add Contact</button>`:''}
             </div>
             <div><h3>Access Grants</h3>
-              ${d.accessGrants.length?d.accessGrants.map(g=>`<div class="access-card"><div class="access-info"><div class="access-name">${esc(g.user?.name||'Unknown')}</div><div class="access-detail">${g.expiresAt?'Until '+fmtDate(g.expiresAt):'Permanent'}</div></div><span class="badge ${g.status==='active'?'green':g.status==='suspended'?'amber':'red'}">${g.status}</span></div>`).join(''):'<p class="sub">No active access grants.</p>'}
+              ${d.accessGrants.length?d.accessGrants.map(g=>`<div class="access-card"><div class="access-info"><div class="access-name">${esc(g.user?.name||'Unknown')}</div><div class="access-detail">${g.expiresAt?countdown(g.expiresAt):'<span class="badge green">Permanent</span>'}</div></div><span class="badge ${g.status==='active'?'green':g.status==='suspended'?'amber':'red'}">${g.status}</span></div>`).join(''):'<p class="sub">No active access grants.</p>'}
             </div>
           </div>
         </div>`;
@@ -230,34 +248,46 @@ async function renderPropertyTab(tab,pid){
       </div>`;
     }else if(tab==='devices'){
       const d=await api('/api/devices?propertyId='+pid);
+      const dAct=await api('/api/activity?propertyId='+pid+'&limit=30');
       let html=`<div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3 style="margin:0">Smart Devices</h3>`;
       if(state.user.role==='owner')html+=`<button class="btn btn-primary btn-sm" onclick="showAddDevice(${pid})">+ Add Device</button>`;
       html+=`</div>`;
-      if(!d.devices.length){html+=`<div class="empty"><p>No devices configured.</p></div>`;}
+      if(!d.devices.length){html+=`<div class="empty-enhanced"><div class="empty-icon">📡</div><h3>No devices yet</h3><p>Add smart locks, cameras, sensors, and more to control your property.</p></div>`;}
       else{
         html+=`<div class="panel-grid">`;
         d.devices.forEach(dev=>{
-          const typeIcon=dev.type==='lock'?ICONS.lock:dev.type==='camera'?ICONS.camera:dev.type==='light'?ICONS.light:dev.type==='alarm'?ICONS.alarm:dev.type==='thermostat'?ICONS.thermostat:dev.type==='gate'?ICONS.gate:dev.type==='garage'?ICONS.garage:'🔧';
-          const statusColor=dev.status==='locked'||dev.status==='armed'||dev.status==='on'||dev.status==='recording'?'green':dev.status==='unlocked'||dev.status==='disarmed'?'amber':'red';
+          const typeIcon=dev.type==='lock'?'🔒':dev.type==='camera'?'📹':dev.type==='light'?'💡':dev.type==='alarm'?'🚨':dev.type==='thermostat'?'🌡️':dev.type==='gate'?'🚪':dev.type==='garage'?'🏠':dev.type==='sensor'?'📡':'🔧';
+          const statusColor=dev.status==='locked'||dev.status==='armed'||dev.status==='on'||dev.status==='recording'||dev.status==='active'||dev.status==='dry'||dev.status==='normal'?'green':dev.status==='unlocked'||dev.status==='disarmed'||dev.status==='off'?'amber':'red';
+          const devActions=dAct.activities.filter(a=>a.resourceType==='device'&&a.resourceId===dev.id).slice(0,2);
           html+=`<div class="dev-card">
             <div style="display:flex;justify-content:space-between;align-items:start">
-              <div><div class="dev-name">${esc(dev.name)}</div><div class="dev-type">${esc(dev.type)} <span class="badge demol">DEMO DEVICE</span></div></div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="section-icon" style="background:var(--bg3);font-size:20px">${typeIcon}</div>
+                <div><div class="dev-name">${esc(dev.name)}</div><div class="dev-type">${esc(dev.type)} · ${esc(dev.location||'Unassigned')} <span class="badge demol">DEMO</span></div></div>
+              </div>
               <span class="badge ${statusColor==='green'?'green':statusColor==='amber'?'amber':'red'}">${esc(dev.status)}</span>
             </div>
-            <div class="dev-status"><span class="dot ${statusColor}"></span>${esc(dev.status)}${dev.lastActionAt?' · '+timeAgo(dev.lastActionAt):''}</div>
-            <div class="dev-actions">`;
+            <div class="dev-status">${deviceStatusDot(dev.status)}<span style="color:var(--text-sub)">${esc(dev.status)}</span>${dev.lastActionAt?' · <span style="color:var(--text-muted)">'+timeAgo(dev.lastActionAt)+'</span>':''}</div>`;
+          if(devActions.length){
+            html+=`<div class="dev-history">`;
+            devActions.forEach(a=>{
+              html+=`<div class="dev-history-item">${deviceStatusDot(a.detail.includes('lock')||a.detail.includes('arm')||a.detail.includes('on')?'green':'red')}<span>${esc(a.user?.name||'System')}: ${esc(a.action)} · ${timeAgo(a.createdAt)}</span></div>`;
+            });
+            html+=`</div>`;
+          }
+          html+=`<div class="dev-actions">`;
           if(dev.type==='lock'){
-            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'lock',${pid})">Lock</button>`;
-            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'unlock',${pid})">Unlock</button>`;
+            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'lock',${pid})">🔒 Lock</button>`;
+            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'unlock',${pid})">🔓 Unlock</button>`;
           }else if(dev.type==='alarm'){
-            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'arm',${pid})">Arm</button>`;
-            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'disarm',${pid})">Disarm</button>`;
+            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'arm',${pid})">🚨 Arm</button>`;
+            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'disarm',${pid})">🔕 Disarm</button>`;
           }else if(dev.type==='camera'){
-            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'on',${pid})">On</button>`;
-            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'off',${pid})">Off</button>`;
+            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'on',${pid})">📹 On</button>`;
+            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'off',${pid})">⬜ Off</button>`;
           }else if(dev.type==='light'){
-            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'on',${pid})">On</button>`;
-            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'off',${pid})">Off</button>`;
+            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'on',${pid})">💡 On</button>`;
+            html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'off',${pid})">🌙 Off</button>`;
           }else{
             html+=`<button class="btn btn-ghost btn-sm" onclick="deviceAction(${dev.id},'toggle',${pid})">Toggle</button>`;
           }
@@ -331,6 +361,31 @@ async function renderPropertyTab(tab,pid){
         html+=`</div>`;
       }
       html+=`</div>`;el.innerHTML=html;
+    }else if(tab==='settings'){
+      const d=await api('/api/properties/'+pid);const p=d.property;
+      el.innerHTML=`
+        <div class="panel">
+          <h3>Property Settings</h3>
+          <div class="settings-section">
+            <div class="settings-row"><div><div class="settings-label">Property Name</div><div class="settings-desc">${esc(p.name)}</div></div><button class="btn btn-ghost btn-sm" onclick="showEditProperty(${pid},'name')">Edit</button></div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-row"><div><div class="settings-label">Address</div><div class="settings-desc">${esc([p.address,p.city,p.state,p.country].filter(Boolean).join(', ')||'Not set')}</div></div><button class="btn btn-ghost btn-sm" onclick="showEditProperty(${pid},'address')">Edit</button></div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-row"><div><div class="settings-label">Property Type</div><div class="settings-desc">${esc(p.type)}</div></div></div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-row"><div><div class="settings-label">Description</div><div class="settings-desc" style="max-width:400px">${esc(p.description||'No description')}</div></div><button class="btn btn-ghost btn-sm" onclick="showEditProperty(${pid},'desc')">Edit</button></div>
+          </div>
+        </div>
+        <div class="panel" style="border-color:var(--red-light)">
+          <h3 style="color:var(--red)">Danger Zone</h3>
+          <div class="settings-row">
+            <div><div class="settings-label">Delete Property</div><div class="settings-desc">This will permanently remove the property, all devices, tenants, and documents. This action cannot be undone.</div></div>
+            <button class="btn btn-danger btn-sm" onclick="deleteProperty(${pid})">Delete Property</button>
+          </div>
+        </div>`;
     }
   }catch(e){el.innerHTML='<div class="empty"><p>'+esc(e.message)+'</p></div>';}
 }
@@ -531,6 +586,30 @@ window.viewProperty=async function(id){
   renderPropertyTab('overview',id);
 };
 
+window.deleteProperty=async function(id){
+  if(!confirm('Are you absolutely sure? This will delete the property and ALL associated data permanently.'))return;
+  if(!confirm('This is your LAST CHANCE. Delete?'))return;
+  try{await api('/api/properties/'+id,{method:'DELETE'});toast('Property deleted.','ok');goto('properties');}catch(e){toast(e.message,'err');}
+};
+
+window.showEditProperty=function(id,field){
+  const labels={name:'Property Name',address:'Address',desc:'Description'};
+  const isTextarea=field==='desc';
+  const inputHtml=isTextarea?`<textarea id="ep-val" rows="3"></textarea>`:`<input id="ep-val" type="text">`;
+  openModal(`
+    <h3>Edit ${labels[field]||field}</h3>
+    <div class="field"><label>${labels[field]}</label>${inputHtml}</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="ep-go">Save</button>
+    </div>`);
+  $('#ep-go').onclick=async()=>{
+    const val=$('#ep-val').value;
+    const body={};body[field==='desc'?'description':field]=val;
+    try{await api('/api/properties/'+id,{method:'PUT',body});closeModal();toast('Updated.','ok');viewProperty(id);}catch(e){toast(e.message,'err');}
+  };
+};
+
 window.showHandover=function(propId){
   openModal(`
     <h3>Handover Property</h3>
@@ -701,6 +780,48 @@ function bindGlobal(){
   $$('.mnav a[data-view]').forEach(a=>{a.onclick=e=>{e.preventDefault();goto(a.dataset.view);}});
   $('#logout-btn').onclick=async()=>{await api('/api/auth/logout',{method:'POST'}).catch(()=>{});state.user=null;showAuth();$('#form-login').reset();$('#form-register').reset();};
   $('#modal-back').addEventListener('click',e=>{if(e.target===$('#modal-back'))closeModal();});
+  // Notification bell
+  const bell=$('#notif-bell');
+  if(bell)bell.onclick=()=>{openModal(`<h3>Notifications</h3><div id="notif-list" style="max-height:400px;overflow-y:auto"><div style="text-align:center;padding:20px;color:var(--text-muted)">Loading...</div></div>`);loadNotificationsModal();};
+}
+
+/* ============ notifications ============ */
+async function pollNotifications(){
+  if(!state.user)return;
+  try{const d=await api('/api/notifications');state.notifCount=d.unread;updateNotifBadge();}catch(e){}
+}
+function updateNotifBadge(){
+  const badge=$('#notif-count');if(!badge)return;
+  if(state.notifCount>0){badge.textContent=state.notifCount>99?'99+':state.notifCount;badge.style.display='';}
+  else{badge.style.display='none';}
+}
+async function loadNotificationsModal(){
+  const el=$('#notif-list');if(!el)return;
+  try{
+    const d=await api('/api/notifications');
+    if(!d.notifications.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">No notifications yet.</div>';return;}
+    el.innerHTML=d.notifications.map(n=>`
+      <div style="padding:12px 0;border-bottom:1px solid var(--border-light);${n.read?'opacity:0.6':''}">
+        <div style="font-size:13px;font-weight:${n.read?'400':'600'}">${esc(n.title)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(n.body)}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${timeAgo(n.createdAt)}</div>
+      </div>`).join('');
+    await api('/api/notifications/read',{method:'POST',body:{}});state.notifCount=0;updateNotifBadge();
+  }catch(e){el.innerHTML='<div style="color:var(--red);padding:12px">'+esc(e.message)+'</div>';}
+}
+
+/* ============ keyboard shortcuts ============ */
+function bindKeyboard(){
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){closeModal();}
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+    if(e.key==='d')goto('dashboard');
+    if(e.key==='p')goto('properties');
+    if(e.key==='g')goto('devices');
+    if(e.key==='m')goto('maintenance');
+    if(e.key==='a')goto('assistant');
+    if(e.key==='n'){const bell=$('#notif-bell');if(bell)bell.click();}
+  });
 }
 
 /* ============ bg canvas ============ */
@@ -714,7 +835,7 @@ function initBg(){
 
 /* ============ boot ============ */
 (async function boot(){
-  initBg();bindAuth();bindGlobal();
-  try{await enter();}
+  initBg();bindAuth();bindGlobal();bindKeyboard();
+  try{await enter();pollNotifications();setInterval(pollNotifications,30000);}
   catch(e){if(e.status===401){showAuth();}else{showAuth();toast(e.message,'err');}}
 })();
