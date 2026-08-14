@@ -7,7 +7,7 @@ const crypto = require('crypto');
 
 const DATA_FILE = path.join(__dirname, 'homepilot-data.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const PORT = Number(process.env.PORT || 4000);
+const PORT = Number(process.env.PORT || 5000);
 
 const CYAN='\x1b[36m',GREEN='\x1b[32m',RED='\x1b[31m',AMBER='\x1b[33m',BOLD='\x1b[1m',DIM='\x1b[2m',RST='\x1b[0m';
 function log(l,m){const t=new Date().toISOString().slice(11,19);const c=l==='ok'?GREEN:l==='err'?RED:l==='warn'?AMBER:CYAN;console.log(`${DIM}[${t}]${RST} ${c}${BOLD}${l.toUpperCase()}${RST} ${m}`);}
