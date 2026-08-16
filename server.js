@@ -107,7 +107,9 @@ function serveFile(res,fp){
   fs.readFile(fp,(e,d)=>{
     if(e){res.writeHead(404);res.end('Not found');return;}
     const ext=path.extname(fp);
-    res.writeHead(200,{'Content-Type':MIME[ext]||'application/octet-stream'});
+    const hdr={'Content-Type':MIME[ext]||'application/octet-stream'};
+    if(ext==='.html'||ext==='.js')hdr['Cache-Control']='no-store, no-cache, must-revalidate';
+    res.writeHead(200,hdr);
     res.end(d);
   });
 }
