@@ -522,7 +522,7 @@ async function handleAPI(req,res){
 /* ============ server ============ */
 const server=http.createServer((req,res)=>{
   const url=new URL(req.url,'http://'+req.headers.host);
-  if(url.pathname.startsWith('/api/'))return handleAPI(req,res);
+  if(url.pathname.startsWith('/api/')){log('INF',`${req.method} ${url.pathname}`);return handleAPI(req,res);}
   let fp=path.join(PUBLIC_DIR,url.pathname==='/'?'index.html':url.pathname);
   if(!fs.existsSync(fp)&&!path.extname(fp))fp=path.join(PUBLIC_DIR,'index.html');
   serveFile(res,fp);

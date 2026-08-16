@@ -26,7 +26,7 @@
       <button id="tab-register">Create account</button>
     </div>
     <div class="errbox" id="auth-err"></div>
-    <form id="form-login" autocomplete="on">
+    <form id="form-login" autocomplete="on" onsubmit="return false;">
       <div class="field"><label>Email</label><input id="li-email" type="email" placeholder="you@example.com" required></div>
       <div class="field"><label>Password</label><input id="li-pass" type="password" placeholder="••••••••" required></div>
       <button type="submit" class="btn btn-primary" id="li-btn">Sign in</button>
@@ -85,6 +85,14 @@
 
 <div class="modal-back" id="modal-back"><div class="modal" id="modal"></div></div>
 <div id="toasts"></div>
-<script src="/app.js"></script>
+<script>if(window._hpInit)location.reload();window._hpInit=true;</script>
+<script src="/app.js?v=4"></script>
+<script>
+if(typeof api==='undefined'){
+  document.getElementById('auth-err').textContent='JavaScript failed to load. Please clear your browser cache (Ctrl+Shift+R) and try again.';
+  document.getElementById('auth-err').classList.add('show');
+  document.getElementById('auth-err').style.cssText='display:block;background:#ff4444;color:white;padding:12px;border-radius:8px;margin-bottom:12px;font-size:14px;';
+}
+</script>
 </body>
 </html>
