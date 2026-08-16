@@ -14,7 +14,7 @@ const state={user:null,properties:[],currentProperty:null,current:'dashboard',no
 
 /* ============ api ============ */
 async function api(path,opts={}){
-  const res=await fetch(path,{method:opts.method||'GET',headers:opts.body?{'Content-Type':'application/json'}:undefined,credentials:'same-origin',body:opts.body?JSON.stringify(opts.body):undefined});
+  const res=await fetch(path,{method:opts.method||'GET',headers:opts.body?{'Content-Type':'application/json'}:undefined,credentials:'include',body:opts.body?JSON.stringify(opts.body):undefined});
   let data={};try{data=await res.json();}catch(e){}
   if(!res.ok){const err=new Error(data.error||'Request failed ('+res.status+')');err.status=res.status;throw err;}
   return data;

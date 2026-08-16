@@ -128,7 +128,7 @@ async function handleAPI(req,res){
       const user={id:nid('user'),email:b.email.toLowerCase(),name:b.name,phone:b.phone||'',passwordHash:hashPassword(b.password,salt),salt,role:'owner',createdAt:nowISO(),avatar:null};
       db.users.push(user);save();
       const token=createSession(user.id);
-      res.setHeader('Set-Cookie',`hp_session=${token}; Path=/; HttpOnly; SameSite=Strict`);
+      res.setHeader('Set-Cookie',`hp_session=${token}; Path=/; HttpOnly; SameSite=Lax`);
       return ok(res,{user:{id:user.id,email:user.email,name:user.name,role:user.role}});
     }
     if(p==='/api/auth/login'&&method==='POST'){
@@ -136,7 +136,7 @@ async function handleAPI(req,res){
       const user=db.users.find(u=>u.email===(b.email||'').toLowerCase());
       if(!user||user.passwordHash!==hashPassword(b.password,user.salt))return fail(res,401,'Invalid credentials');
       const token=createSession(user.id);
-      res.setHeader('Set-Cookie',`hp_session=${token}; Path=/; HttpOnly; SameSite=Strict`);
+      res.setHeader('Set-Cookie',`hp_session=${token}; Path=/; HttpOnly; SameSite=Lax`);
       return ok(res,{user:{id:user.id,email:user.email,name:user.name,role:user.role}});
     }
     if(p==='/api/auth/logout'&&method==='POST'){
