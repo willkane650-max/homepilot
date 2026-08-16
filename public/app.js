@@ -55,7 +55,7 @@ function errBox(m){const e=$('#auth-err');e.textContent=m;e.classList.add('show'
 const _views={};const _binders={};
 function reg(name,fn){_views[name]=fn;}
 function goto(view,state2){state.current=view;$$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$$('.mnav a').forEach(a=>a.classList.toggle('active',a.dataset.view===view));renderView();}
-function renderView(){const fn=_views[state.current];if(fn){$('#main').innerHTML=fn();$('#main').className='main fade-in';if(_binders[state.current])_binders[state.current]();}}
+async function renderView(){const fn=_views[state.current];if(fn){$('#main').innerHTML=await fn();$('#main').className='main fade-in';if(_binders[state.current])_binders[state.current]();}}
 
 async function enter(){
   showApp();
